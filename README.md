@@ -1,65 +1,101 @@
-# Android Architecture Samples
+<img src="screenshots/jetchatlogo.png"/>
 
-These samples showcase different architectural approaches to developing Android apps. In its different branches you'll find the same app (a TODO app) implemented with small differences.
+# Jetchat sample
 
-In this branch you'll find:
-*   User Interface built with **[Jetpack Compose](https://developer.android.com/jetpack/compose)** 
-*   A single-activity architecture, using **[Navigation Compose](https://developer.android.com/jetpack/compose/navigation)**.
-*   A presentation layer that contains a Compose screen (View) and a **ViewModel** per screen (or feature).
-*   Reactive UIs using **[Flow](https://developer.android.com/kotlin/flow)** and **[coroutines](https://kotlinlang.org/docs/coroutines-overview.html)** for asynchronous operations.
-*   A **data layer** with a repository and two data sources (local using Room and a fake remote).
-*   Two **product flavors**, `mock` and `prod`, [to ease development and testing](https://android-developers.googleblog.com/2015/12/leveraging-product-flavors-in-android.html).
-*   A collection of unit, integration and e2e **tests**, including "shared" tests that can be run on emulator/device.
-*   Dependency injection using [Hilt](https://developer.android.com/training/dependency-injection/hilt-android).
+Jetchat is a sample chat app built with [Jetpack Compose][compose].
+
+To try out this sample app, use the latest stable version
+of [Android Studio](https://developer.android.com/studio).
+You can clone this repository or import the
+project from Android Studio following the steps
+[here](https://developer.android.com/jetpack/compose/setup#sample).
+
+This sample showcases:
+
+* UI state management
+* Integration with Architecture Components: Navigation 3, ViewModel
+* Back button handling
+* Text Input and focus management
+* Multiple types of animations and transitions
+* Saved state across configuration changes
+* Material Design 3 theming and Material You dynamic color
+* UI tests
 
 ## Screenshots
 
-<img src="screenshots/screenshots.png" alt="Screenshot">
+<img src="screenshots/screenshots.png"/>
 
-## Why a to-do app?
+<img src="screenshots/widget.png" width="300"/>
 
-The app in this project aims to be simple enough that you can understand it quickly, but complex enough to showcase difficult design decisions and testing scenarios. For more information, see the [app's specification](https://github.com/googlesamples/android-architecture/wiki/To-do-app-specification).
+<img src="screenshots/widget_discoverability.png" width="300"/>
 
-## What is it not?
-*   A template. Check out the [Architecture Templates](https://github.com/android/architecture-templates) instead.
-*   A UI/Material Design sample. The interface of the app is deliberately kept simple to focus on architecture. Check out the [Compose Samples](https://github.com/android/compose-samples) instead.
-*   A real production app with network access, user authentication, etc. Check out the [Now in Android app](https://github.com/android/nowinandroid) instead.
+### Status: 🚧 In progress
 
-## Who is it for?
+Jetchat is still in under development, and some features are not yet implemented.
 
-*   Intermediate developers and beginners looking for a way to structure their app in a testable and maintainable way.
-*   Advanced developers looking for quick reference.
+## Features
 
-## Opening a sample in Android Studio
+### UI State management
+The [ConversationContent](app/src/main/java/com/example/compose/jetchat/conversation/Conversation.kt) composable is the entry point to this screen and takes a [ConversationUiState](app/src/main/java/com/example/compose/jetchat/conversation/ConversationUiState.kt) that defines the data to be displayed. This doesn't mean all the state is served from a single point: composables can have their own state too. For an example, see `scrollState` in [ConversationContent](app/src/main/java/com/example/compose/jetchat/conversation/Conversation.kt) or `currentInputSelector` in [UserInput](app/src/main/java/com/example/compose/jetchat/conversation/UserInput.kt)
 
-To open one of the samples in Android Studio, begin by checking out one of the sample branches, and then open the root directory in Android Studio. The following series of steps illustrate how to open the sample.
+### Architecture Components
+[JetchatApp](app/src/main/java/com/example/compose/jetchat/JetchatApp.kt) hosts the screens in a [Navigation 3](https://developer.android.com/guide/navigation/navigation-3) `NavDisplay`. The destinations are the typed keys defined in [JetchatNavKeys](app/src/main/java/com/example/compose/jetchat/navigation/JetchatNavKeys.kt): opening a profile pushes a `Profile(userId)` key onto the back stack, which is created with `rememberNavBackStack` so that it survives configuration changes and process death. The back stack is the single source of truth for navigation: the drawer derives its selected item from the key on top of it. The profile entry passes the `userId` of its key to a
+[ViewModel](https://developer.android.com/topic/libraries/architecture/viewmodel) that is scoped to that entry with `rememberViewModelStoreNavEntryDecorator`, and observes its state served via [LiveData](https://developer.android.com/topic/libraries/architecture/livedata).
 
-Clone the repository:
+### Back button handling
+When the Emoji selector is shown, pressing back in the app closes it, intercepting any navigation events. The implementation can be found in [UserInput](app/src/main/java/com/example/compose/jetchat/conversation/UserInput.kt).
 
+### Text Input and focus management
+When the Emoji panel is shown the keyboard must be hidden and vice versa. This is achieved with a combination of the [FocusRequester](https://developer.android.com/reference/kotlin/androidx/compose/ui/focus/FocusRequester) and [onFocusChanged](https://developer.android.com/reference/kotlin/androidx/compose/ui/focus/package-summary#(androidx.compose.ui.Modifier).onFocusChanged(kotlin.Function1)) APIs.
+
+### Multiple types of animations and transitions
+This sample uses animations ranging from simple `AnimatedVisibility` in [FunctionalityNotAvailablePanel](app/src/main/java/com/example/compose/jetchat/conversation/UserInput.kt) to choreographed transitions found in the [FloatingActionButton](https://material.io/develop/android/components/floating-action-button) of the Profile screen and implemented in [AnimatingFabContent](app/src/main/java/com/example/compose/jetchat/conversation/UserInput.kt)
+
+### Edge-to-edge UI with synchronized IME transitions
+This sample is laid out [edge-to-edge](https://medium.com/androiddevelopers/gesture-navigation-going-edge-to-edge-812f62e4e83e), drawing its content behind the system bars for a more immersive look.
+
+The sample also supports synchronized IME transitions when running on API 30+ devices. See the use of `Modifier.navigationBarsPadding().imePadding()` in [ConversationContent](app/src/main/java/com/example/compose/jetchat/conversation/UserInput.kt).
+
+### Saved state across configuration changes
+Some composable state survives activity or process recreation, like `currentInputSelector` in [UserInput](app/src/main/java/com/example/compose/jetchat/conversation/UserInput.kt). The navigation back stack is saved too, see `rememberNavBackStack` in [JetchatApp](app/src/main/java/com/example/compose/jetchat/JetchatApp.kt).
+
+### Material Design 3 theming and Material You dynamic color
+Jetchat follows the [Material Design 3](https://m3.material.io) principles and uses the `MaterialTheme` composable and M3 components. On Android 12+ Jetchat supports Material You dynamic color, which extracts a custom color scheme from the device wallpaper. Jetchat uses a custom, branded color scheme as a fallback. It also implements custom typography using the Karla and Montserrat font families.
+
+### UI tests
+In [androidTest](app/src/androidTest/java/com/example/compose/jetchat) you'll find a suite of UI tests that showcase interesting patterns in Compose:
+
+#### [ConversationTest](app/src/androidTest/java/com/example/compose/jetchat/ConversationTest.kt)
+UI tests for the Conversation screen. Includes a test that checks the behavior of the app when dark mode changes.
+
+#### [NavigationTest](app/src/androidTest/java/com/example/compose/jetchat/NavigationTest.kt)
+Checks the navigation flows of the app (opening profiles from the drawer, going back, popping the back stack) by asserting on what is displayed.
+
+#### [UserInputTest](app/src/androidTest/java/com/example/compose/jetchat/UserInputTest.kt)
+Checks that the user input composable, including extended controls, behave as expected showing and hiding the keyboard.
+
+
+## Known issues
+1. If the emoji selector is shown, clicking on the TextField can sometimes show both input methods.
+Tracked in https://issuetracker.google.com/164859446
+
+2. There are only two profiles, clicking on anybody except "me" will show the same data.
+
+## License
 ```
-git clone git@github.com:android/architecture-samples.git
-```
+Copyright 2020 The Android Open Source Project
 
-Finally open the `architecture-samples/` directory in Android Studio.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-### License
-
-
-```
-Copyright 2024 Google, Inc.
-
-Licensed to the Apache Software Foundation (ASF) under one or more contributor
-license agreements. See the NOTICE file distributed with this work for
-additional information regarding copyright ownership. The ASF licenses this
-file to you under the Apache License, Version 2.0 (the "License"); you may not
-use this file except in compliance with the License. You may obtain a copy of
-the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-License for the specific language governing permissions and limitations under
-the License.
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 ```
+
+[compose]: https://developer.android.com/jetpack/compose
