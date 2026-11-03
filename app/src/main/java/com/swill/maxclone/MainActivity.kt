@@ -10,11 +10,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.socket.client.IO
-import io.socket.client.Socket
+import okhttp3.*
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
-    private lateinit var socket: Socket
+    private var webSocket: WebSocket? = null
+    private val client = OkHttpClient.Builder()
+        .readTimeout(0, TimeUnit.MILLISECONDS) 
+        .build()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,35 +25,51 @@ class MainActivity : ComponentActivity() {
         // Твой сервер на Cloudflare
         val serverUrl = "wss://mysty-dawn-51cd.serafimabramovbirukov.workers.dev/"
         
-        try {
-            socket = IO.socket(serverUrl)
-            socket.connect()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
         setContent {
             MaterialTheme {
                 Surface {
-                    val messages = remember { mutableStateListOf<String>("Подключение к серверу...") }
+                    val messages = remember { mutableStateListOf<String>() }
                     var input by remember { mutableStateOf("") }
+                    var isConnected by remember { mutableStateOf(false) }
 
-                    LaunchedEffect(Unit) {
-                        socket.on("message") { args ->
-                            val msg = args[0].toString()
-                            runOnUiThread {
-                                if (messages.size == 1 && messages[0] == "Подключение к серверу...") {
-                                    messages.clear()
+                    // Функция подключения к серверу
+                    fun connectToServer() {
+                        val request = Request.Builder().url(serverUrl).build()
+                        webSocket = client.newWebSocket(request, object : WebSocketListener() {
+                            override fun onOpen(webSocket: WebSocket, response: Response) {
+                                runOnUiThread {
+                                    isConnected = true
+                                    messages.add("Система: Подключено к серверу!")
                                 }
-                                messages.add(msg)
                             }
-                        }
+                            override fun onMessage(webSocket: WebSocket, text: String) {
+                                runOnUiThread {
+                                    messages.add(text)
+                                }
+                            }
+                            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                                runOnUiThread {
+                                    isConnected = false
+                                    messages.add("Система: Ошибка подключения")
+                                }
+                            }
+                        })
+                    }
+
+                    // Запускаем подключение при старте экрана
+                    LaunchedEffect(Unit) {
+                        connectToServer()
                     }
 
                     Column(Modifier.fillMaxSize().padding(16.dp)) {
                         LazyColumn(Modifier.weight(1f)) {
                             items(messages) { m -> Text(m, Modifier.padding(4.dp)) }
                         }
+                        
+                        if (!isConnected) {
+                            Text("Подключение к серверу...", modifier = Modifier.padding(bottom = 8.dp))
+                        }
+
                         Row(Modifier.fillMaxWidth()) {
                             OutlinedTextField(
                                 value = input,
@@ -59,12 +78,15 @@ class MainActivity : ComponentActivity() {
                                 placeholder = { Text("Сообщение") }
                             )
                             Spacer(Modifier.width(8.dp))
-                            Button(onClick = {
-                                if (input.isNotBlank()) {
-                                    socket.emit("message", input)
-                                    input = ""
-                                }
-                            }) { Text("→") }
+                            Button(
+                                onClick = {
+                                    if (input.isNotBlank() && isConnected) {
+                                        webSocket?.send(input)
+                                        input = ""
+                                    }
+                                },
+                                enabled = isConnected
+                            ) { Text("→") }
                         }
                     }
                 }
@@ -74,8 +96,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::socket.isInitialized) {
-            socket.disconnect()
-        }
+        webSocket?.close(1000, "Bye")
     }
 }
