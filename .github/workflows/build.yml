@@ -19,6 +19,13 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
+      - name: Fix Gradle Wrapper
+        run: |
+          rm -rf gradle/wrapper
+          curl -L -o gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.7.0/gradle/wrapper/gradle-wrapper.jar
+          mkdir -p gradle/wrapper
+          mv gradle-wrapper.jar gradle/wrapper/gradle-wrapper.jar
+
       - name: Grant execute permission
         run: chmod +x gradlew
 
