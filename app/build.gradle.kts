@@ -1,8 +1,9 @@
 plugins {
-    id("com.android.application") version "8.5.2"
-    id("org.jetbrains.kotlin.android") version "2.0.21"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
+
 android {
     namespace = "com.swill.maxclone"
     compileSdk = 34
@@ -41,6 +42,4 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-        exclude(group = "org.json", module = "json")
-    }
 }
