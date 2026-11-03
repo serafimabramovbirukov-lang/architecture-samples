@@ -14,17 +14,18 @@ import okhttp3.*
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
-    private var webSocket: WebSocket? = null
-    private val client = OkHttpClient.Builder()
-        .readTimeout(0, TimeUnit.MILLISECONDS) 
-        .build()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Твой сервер на Cloudflare
+        val client = OkHttpClient.Builder()
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .build()
+            
         val serverUrl = "wss://mysty-dawn-51cd.serafimabramovbirukov.workers.dev/"
+        val request = Request.Builder().url(serverUrl).build()
         
+        var webSocket: WebSocket? = null
+
         setContent {
             MaterialTheme {
                 Surface {
@@ -32,14 +33,12 @@ class MainActivity : ComponentActivity() {
                     var input by remember { mutableStateOf("") }
                     var isConnected by remember { mutableStateOf(false) }
 
-                    // Функция подключения к серверу
-                    fun connectToServer() {
-                        val request = Request.Builder().url(serverUrl).build()
+                    LaunchedEffect(Unit) {
                         webSocket = client.newWebSocket(request, object : WebSocketListener() {
                             override fun onOpen(webSocket: WebSocket, response: Response) {
                                 runOnUiThread {
                                     isConnected = true
-                                    messages.add("Система: Подключено к серверу!")
+                                    messages.add("Система: Подключено!")
                                 }
                             }
                             override fun onMessage(webSocket: WebSocket, text: String) {
@@ -54,11 +53,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         })
-                    }
-
-                    // Запускаем подключение при старте экрана
-                    LaunchedEffect(Unit) {
-                        connectToServer()
                     }
 
                     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -86,16 +80,11 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 enabled = isConnected
-                            ) { Text("→") }
+                            ) { Text("->") } // Заменили стрелку на обычный текст
                         }
                     }
                 }
             }
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        webSocket?.close(1000, "Bye")
     }
 }
